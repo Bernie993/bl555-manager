@@ -45,6 +45,15 @@
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-sm-3">
+                            <strong>Mã đơn hàng:</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            <h5 class="text-primary">{{ $serviceProposal->order_code }}</h5>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
                             <strong>Tên dịch vụ:</strong>
                         </div>
                         <div class="col-sm-9">

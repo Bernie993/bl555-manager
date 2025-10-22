@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\Auditable;
+use App\Models\User;
 
 class ServiceProposal extends Model
 {
     use HasFactory; // , Auditable;
 
     protected $fillable = [
+        'order_code',
         'service_id',
         'service_name',
         'target_domain',
@@ -169,6 +171,41 @@ class ServiceProposal extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Generate order code for the proposal
+     */
+    public static function generateOrderCode(User $user): string
+    {
+        $today = now()->format('dmY'); // Format: DDMMYYYY
+        $username = strtoupper($user->name);
+        
+        // Count proposals created today by this user
+        $todayCount = self::where('created_by', $user->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+        
+        $sequenceNumber = str_pad($todayCount + 1, 2, '0', STR_PAD_LEFT);
+        
+        return "{$username}-{$today}-{$sequenceNumber}";
+    }
+
+    /**
+     * Boot method to automatically generate order code
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($proposal) {
+            if (empty($proposal->order_code)) {
+                $user = User::find($proposal->created_by);
+                if ($user) {
+                    $proposal->order_code = self::generateOrderCode($user);
+                }
+            }
+        });
     }
 
     /**

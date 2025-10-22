@@ -218,6 +218,10 @@
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
                                 <strong>Tạo đề xuất từ dịch vụ:</strong> {{ $serviceData['service_name'] ?? 'N/A' }}
+                                <br><small class="text-muted">
+                                    <i class="fas fa-barcode me-1"></i>
+                                    Mã đơn hàng sẽ được tạo tự động: <strong>{{ strtoupper(auth()->user()->name) }}-{{ now()->format('dmY') }}-XX</strong>
+                                </small>
                             </div>
                         @endif
 

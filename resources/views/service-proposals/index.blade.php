@@ -173,6 +173,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Mã đơn hàng</th>
                             <th>Dịch vụ</th>
                             <th>Nhà cung cấp</th>
                             <th>Số tiền</th>
@@ -185,6 +186,9 @@
                     <tbody>
                         @foreach($proposals as $proposal)
                         <tr>
+                            <td>
+                                <strong class="text-primary">{{ $proposal->order_code }}</strong>
+                            </td>
                             <td>
                                 <strong>{{ $proposal->service_name }}</strong>
                                 @if($proposal->target_domain)

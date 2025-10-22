@@ -37,7 +37,8 @@ class ServiceProposalController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('service_name', 'like', "%{$search}%")
-                    ->orWhere('supplier_name', 'like', "%{$search}%");
+                    ->orWhere('supplier_name', 'like', "%{$search}%")
+                    ->orWhere('order_code', 'like', "%{$search}%");
             });
         }
 
@@ -96,7 +97,8 @@ class ServiceProposalController extends Controller
             $search = $request->search;
             $totalQuery->where(function($q) use ($search) {
                 $q->where('service_name', 'like', "%{$search}%")
-                    ->orWhere('supplier_name', 'like', "%{$search}%");
+                    ->orWhere('supplier_name', 'like', "%{$search}%")
+                    ->orWhere('order_code', 'like', "%{$search}%");
             });
         }
         

@@ -57,6 +57,12 @@
                     @csrf
                     @method('PUT')
                     
+                    <!-- Order Code Display -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-barcode me-2"></i>
+                        <strong>Mã đơn hàng:</strong> {{ $serviceProposal->order_code }}
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label for="service_name" class="form-label">Tên dịch vụ <span class="text-danger">*</span></label>
