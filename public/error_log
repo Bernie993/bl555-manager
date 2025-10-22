@@ -1,0 +1,7 @@
+[12-Sep-2025 15:26:40 UTC] PHP Fatal error:  Trait "App\Traits\Auditable" not found in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 10
+[12-Sep-2025 15:26:53 UTC] PHP Fatal error:  Trait "App\Traits\Auditable" not found in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 10
+[15-Sep-2025 10:48:39 UTC] PHP Fatal error:  Cannot redeclare App\Models\ServiceProposal::creator() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 175
+[15-Sep-2025 10:48:53 UTC] PHP Fatal error:  Cannot redeclare App\Models\ServiceProposal::creator() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 175
+[15-Sep-2025 10:49:04 UTC] PHP Fatal error:  Cannot redeclare App\Models\ServiceProposal::creator() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 175
+[15-Sep-2025 10:49:08 UTC] PHP Fatal error:  Cannot redeclare App\Models\ServiceProposal::creator() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 175
+[15-Sep-2025 10:50:12 UTC] PHP Fatal error:  Cannot redeclare App\Models\ServiceProposal::creator() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/ServiceProposal.php on line 175

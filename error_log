@@ -1,0 +1,4 @@
+[14-Sep-2025 07:37:32 UTC] PHP Fatal error:  Cannot redeclare App\Models\User::hasPermission() in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/User.php on line 133
+[14-Sep-2025 07:39:30 UTC] PHP Fatal error:  Trait "App\Traits\Auditable" not found in /home/cksvbm6yxj4i/manage-bl555.democode.site/app/Models/User.php on line 12
+[14-Sep-2025 08:22:57 UTC] PHP Parse error:  syntax error, unexpected identifier "Log", expecting ";" or "{" in app/Http/Controllers/WithdrawalController.php on line 91
+[14-Sep-2025 08:23:49 UTC] PHP Fatal error:  Cannot use Illuminate\Support\Facades\Log as Log because the name is already in use in app/Http/Controllers/WithdrawalController.php on line 11

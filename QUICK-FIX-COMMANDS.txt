@@ -1,0 +1,76 @@
+# QUICK FIX FOR PRODUCTION SERVER
+# Copy and paste these commands on your server:
+
+cd /www/wwwroot/bl555pm.com
+
+# 1. Create missing AppServiceProvider
+mkdir -p app/Providers
+cat > app/Providers/AppServiceProvider.php << 'EOF'
+<?php
+namespace App\Providers;
+use Illuminate\Support\ServiceProvider;
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void {}
+    public function boot(): void {}
+}
+EOF
+
+# 2. Create missing AuthServiceProvider  
+cat > app/Providers/AuthServiceProvider.php << 'EOF'
+<?php
+namespace App\Providers;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
+class AuthServiceProvider extends ServiceProvider
+{
+    protected $policies = [];
+    public function register(): void {}
+    public function boot(): void {
+        $this->registerPolicies();
+        Gate::before(function ($user, $ability) {
+            return $user->hasPermission($ability) ? true : null;
+        });
+    }
+}
+EOF
+
+# 3. Update bootstrap/app.php
+cat > bootstrap/app.php << 'EOF'
+<?php
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+        ]);
+    })
+    ->withProviders([
+        \App\Providers\AppServiceProvider::class,
+        \App\Providers\AuthServiceProvider::class,
+    ])
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+EOF
+
+# 4. Clear caches and regenerate autoload
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear  
+php artisan view:clear
+composer dump-autoload --optimize
+
+# 5. Cache again
+php artisan view:cache
+php artisan config:cache
+php artisan route:cache
+
+echo "✅ Fix completed!"
