@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Website;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -123,7 +124,12 @@ class BudgetController extends Controller
      */
     public function create()
     {
-        return view('budgets.create');
+        // Get all users with seoer role
+        $seoers = User::whereHas('role', function($query) {
+            $query->where('name', 'seoer');
+        })->where('is_active', true)->orderBy('name')->get();
+
+        return view('budgets.create', compact('seoers'));
     }
 
     /**
@@ -170,7 +176,12 @@ class BudgetController extends Controller
      */
     public function edit(Budget $budget)
     {
-        return view('budgets.edit', compact('budget'));
+        // Get all users with seoer role
+        $seoers = User::whereHas('role', function($query) {
+            $query->where('name', 'seoer');
+        })->where('is_active', true)->orderBy('name')->get();
+
+        return view('budgets.edit', compact('budget', 'seoers'));
     }
 
     /**

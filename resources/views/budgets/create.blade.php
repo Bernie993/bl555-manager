@@ -22,12 +22,18 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="seoer" class="form-label">Seoer <span class="text-danger">*</span></label>
-                                    <input type="text" 
-                                           class="form-control @error('seoer') is-invalid @enderror" 
-                                           id="seoer" 
-                                           name="seoer" 
-                                           value="{{ old('seoer') }}" 
-                                           required>
+                                    <select class="form-control @error('seoer') is-invalid @enderror" 
+                                            id="seoer" 
+                                            name="seoer" 
+                                            required>
+                                        <option value="">-- Chọn Seoer --</option>
+                                        @foreach($seoers as $seoer)
+                                            <option value="{{ $seoer->name }}" 
+                                                    {{ old('seoer') == $seoer->name ? 'selected' : '' }}>
+                                                {{ $seoer->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                     @error('seoer')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

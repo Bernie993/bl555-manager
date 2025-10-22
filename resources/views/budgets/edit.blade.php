@@ -38,15 +38,10 @@
                                     id="seoer" 
                                     name="seoer" 
                                     required>
-                                <option value="">Chọn Seoer</option>
-                                @php
-                                    $seoers = \App\Models\User::whereHas('role', function($q) {
-                                        $q->where('name', 'seoer');
-                                    })->get();
-                                @endphp
+                                <option value="">-- Chọn Seoer --</option>
                                 @foreach($seoers as $seoerUser)
                                     <option value="{{ $seoerUser->name }}" {{ (old('seoer', $budget->seoer) === $seoerUser->name) ? 'selected' : '' }}>
-                                        {{ $seoerUser->name }} ({{ ucfirst($seoerUser->role->name) }})
+                                        {{ $seoerUser->name }}
                                     </option>
                                 @endforeach
                             </select>
