@@ -50,7 +50,12 @@ class WebsiteController extends Controller
         }
 
         $websites = $query->orderBy('created_at', 'desc')->paginate(10);
-        $users = User::where('is_active', true)->orderBy('name')->get();
+        $users = User::where('is_active', true)
+                    ->whereHas('role', function($query) {
+                        $query->where('name', 'seoer');
+                    })
+                    ->orderBy('name')
+                    ->get();
 
         return view('websites.index', compact('websites', 'users'));
     }
@@ -60,7 +65,12 @@ class WebsiteController extends Controller
      */
     public function create()
     {
-        $users = User::where('is_active', true)->orderBy('name')->get();
+        $users = User::where('is_active', true)
+                    ->whereHas('role', function($query) {
+                        $query->where('name', 'seoer');
+                    })
+                    ->orderBy('name')
+                    ->get();
         return view('websites.create', compact('users'));
     }
 
@@ -127,7 +137,12 @@ class WebsiteController extends Controller
      */
     public function edit(Website $website)
     {
-        $users = User::where('is_active', true)->orderBy('name')->get();
+        $users = User::where('is_active', true)
+                    ->whereHas('role', function($query) {
+                        $query->where('name', 'seoer');
+                    })
+                    ->orderBy('name')
+                    ->get();
         return view('websites.edit', compact('website', 'users'));
     }
 
