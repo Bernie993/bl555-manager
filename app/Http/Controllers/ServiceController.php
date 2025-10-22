@@ -75,6 +75,30 @@ class ServiceController extends Controller
             $query->where('price', '<=', $request->price_to);
         }
 
+        // DR filters
+        if ($request->filled('dr_from')) {
+            $query->where('dr', '>=', $request->dr_from);
+        }
+
+        if ($request->filled('dr_to')) {
+            $query->where('dr', '<=', $request->dr_to);
+        }
+
+        // Ref domain filter
+        if ($request->filled('ref_domain_search')) {
+            $refDomainSearch = $request->ref_domain_search;
+            $query->where('ref_domain', 'like', "%{$refDomainSearch}%");
+        }
+
+        // Traffic filters
+        if ($request->filled('traffic_from')) {
+            $query->where('traffic', '>=', $request->traffic_from);
+        }
+
+        if ($request->filled('traffic_to')) {
+            $query->where('traffic', '<=', $request->traffic_to);
+        }
+
         // Handle sorting
         $sortBy = $request->get('sort_by', 'created_at_desc');
         switch ($sortBy) {
@@ -89,6 +113,12 @@ class ServiceController extends Controller
                 break;
             case 'name_desc':
                 $query->orderBy('name', 'desc');
+                break;
+            case 'dr_asc':
+                $query->orderBy('dr', 'asc');
+                break;
+            case 'dr_desc':
+                $query->orderBy('dr', 'desc');
                 break;
             case 'created_at_desc':
             default:

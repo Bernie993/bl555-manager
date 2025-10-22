@@ -92,6 +92,54 @@
 
                                 <div class="col-md-2">
                                     <div class="form-group">
+                                        <label for="dr_from">DR từ:</label>
+                                        <input type="number" name="dr_from" id="dr_from" class="form-control form-control-sm" 
+                                               placeholder="0" min="0" max="100" step="1"
+                                               value="{{ request('dr_from') }}">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="dr_to">DR đến:</label>
+                                        <input type="number" name="dr_to" id="dr_to" class="form-control form-control-sm" 
+                                               placeholder="100" min="0" max="100" step="1"
+                                               value="{{ request('dr_to') }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Second Row -->
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="ref_domain_search">Ref domain:</label>
+                                        <input type="text" name="ref_domain_search" id="ref_domain_search" class="form-control form-control-sm" 
+                                               placeholder="Tìm theo domain..."
+                                               value="{{ request('ref_domain_search') }}">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="traffic_from">Traffic từ:</label>
+                                        <input type="number" name="traffic_from" id="traffic_from" class="form-control form-control-sm" 
+                                               placeholder="0" min="0" step="1000"
+                                               value="{{ request('traffic_from') }}">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="traffic_to">Traffic đến:</label>
+                                        <input type="number" name="traffic_to" id="traffic_to" class="form-control form-control-sm" 
+                                               placeholder="1000000" min="0" step="1000"
+                                               value="{{ request('traffic_to') }}">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <div class="form-group">
                                         <label for="sort_by">Sắp xếp:</label>
                                         <select name="sort_by" id="sort_by" class="form-control form-control-sm">
                                             <option value="created_at_desc" {{ request('sort_by') == 'created_at_desc' ? 'selected' : '' }}>
@@ -108,6 +156,12 @@
                                             </option>
                                             <option value="name_desc" {{ request('sort_by') == 'name_desc' ? 'selected' : '' }}>
                                                 Tên Z → A
+                                            </option>
+                                            <option value="dr_desc" {{ request('sort_by') == 'dr_desc' ? 'selected' : '' }}>
+                                                DR cao → thấp
+                                            </option>
+                                            <option value="dr_asc" {{ request('sort_by') == 'dr_asc' ? 'selected' : '' }}>
+                                                DR thấp → cao
                                             </option>
                                         </select>
                                     </div>
@@ -551,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded');
     
     // Format price inputs
-    const priceInputs = document.querySelectorAll('#price_from, #price_to');
+    const priceInputs = document.querySelectorAll('#price_from, #price_to, #traffic_from, #traffic_to');
     priceInputs.forEach(input => {
         input.addEventListener('input', function() {
             // Remove non-numeric characters
@@ -569,6 +623,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Format DR inputs
+    const drInputs = document.querySelectorAll('#dr_from, #dr_to');
+    drInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            // Remove non-numeric characters and limit to 0-100
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value > 100) {
+                this.value = 100;
+            }
+        });
+    });
+
     // Auto submit form when filters change
     const autoSubmitElements = document.querySelectorAll('#type, #partner_name, #approval_status, #sort_by');
     autoSubmitElements.forEach(element => {
@@ -579,6 +645,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 100);
         });
     });
+
+    // Auto submit form when numeric filters change (with debounce)
+    const numericFilters = document.querySelectorAll('#price_from, #price_to, #dr_from, #dr_to, #traffic_from, #traffic_to');
+    let debounceTimer;
+    numericFilters.forEach(element => {
+        element.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.form.submit();
+            }, 1000); // Wait 1 second after user stops typing
+        });
+    });
+
+    // Auto submit form when ref domain search changes (with debounce)
+    const refDomainSearch = document.querySelector('#ref_domain_search');
+    if (refDomainSearch) {
+        refDomainSearch.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.form.submit();
+            }, 1000); // Wait 1 second after user stops typing
+        });
+    }
 
     // Enhanced search with Enter key
     const searchInput = document.querySelector('#search');
