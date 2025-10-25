@@ -17,7 +17,7 @@ class NotificationService
      */
     public function sendServiceNotification(string $action, Service $service, User $actor): void
     {
-        $recipients = $this->getServiceNotificationRecipients();
+        $recipients = $this->getServiceNotificationRecipientsForService($service);
         $data = $this->prepareServiceNotificationData($action, $service, $actor);
         
         $this->createAndSendNotifications($recipients, $data, $service);
@@ -162,6 +162,28 @@ class NotificationService
         return User::whereHas('role', function ($query) {
             $query->whereIn('name', ['admin', 'it', 'assistant', 'partner']);
         })->where('is_active', true)->get();
+    }
+
+    /**
+     * Get recipients for service notifications with partner filtering
+     */
+    private function getServiceNotificationRecipientsForService(Service $service): Collection
+    {
+        $recipients = collect();
+        
+        // Admin, IT, Assistant (TL) - always get notifications
+        $adminItTl = User::whereHas('role', function ($query) {
+            $query->whereIn('name', ['admin', 'it', 'assistant']);
+        })->where('is_active', true)->get();
+        
+        $recipients = $recipients->merge($adminItTl);
+        
+        // Only the service owner (partner) gets notification for their own service
+        if ($service->partner) {
+            $recipients->push($service->partner);
+        }
+        
+        return $recipients->unique('id');
     }
 
     /**
@@ -379,7 +401,25 @@ class NotificationService
      */
     public function getUnreadCount(int $userId): int
     {
-        return Notification::forUser($userId)->unread()->count();
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return 0;
+        }
+        
+        $query = Notification::forUser($userId)->unread();
+        
+        // If user is a partner, filter notifications to only show their own services
+        if ($user->hasRole('partner')) {
+            $query->where(function ($q) use ($user) {
+                $q->where('notifiable_type', '!=', 'App\Models\Service')
+                  ->orWhereHas('notifiable', function ($serviceQuery) use ($user) {
+                      $serviceQuery->where('partner_id', $user->id);
+                  });
+            });
+        }
+        
+        return $query->count();
     }
 
     /**
@@ -387,9 +427,26 @@ class NotificationService
      */
     public function getRecentNotifications(int $userId, int $limit = 10): Collection
     {
-        return Notification::forUser($userId)
-            ->with(['fromUser', 'notifiable'])
-            ->orderBy('created_at', 'desc')
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return collect();
+        }
+        
+        $query = Notification::forUser($userId)
+            ->with(['fromUser', 'notifiable']);
+        
+        // If user is a partner, filter notifications to only show their own services
+        if ($user->hasRole('partner')) {
+            $query->where(function ($q) use ($user) {
+                $q->where('notifiable_type', '!=', 'App\Models\Service')
+                  ->orWhereHas('notifiable', function ($serviceQuery) use ($user) {
+                      $serviceQuery->where('partner_id', $user->id);
+                  });
+            });
+        }
+        
+        return $query->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
     }
@@ -412,11 +469,27 @@ class NotificationService
      */
     public function markAllAsRead(int $userId): void
     {
-        Notification::forUser($userId)
-            ->unread()
-            ->update([
-                'is_read' => true,
-                'read_at' => now(),
-            ]);
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return;
+        }
+        
+        $query = Notification::forUser($userId)->unread();
+        
+        // If user is a partner, filter notifications to only show their own services
+        if ($user->hasRole('partner')) {
+            $query->where(function ($q) use ($user) {
+                $q->where('notifiable_type', '!=', 'App\Models\Service')
+                  ->orWhereHas('notifiable', function ($serviceQuery) use ($user) {
+                      $serviceQuery->where('partner_id', $user->id);
+                  });
+            });
+        }
+        
+        $query->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
     }
 }

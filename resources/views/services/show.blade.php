@@ -23,13 +23,10 @@
                         @endif
                         
                         @if($service->canBeApprovedBy(auth()->user()))
-                            <form method="POST" action="{{ route('services.approve', $service) }}" class="d-inline" 
-                                  onsubmit="return confirm('Bạn có chắc chắn muốn duyệt dịch vụ này?')">
-                                @csrf
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="fas fa-check mr-1"></i>Duyệt nhanh
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-success btn-sm" id="approveServiceBtn" 
+                                    data-service-id="{{ $service->id }}">
+                                <i class="fas fa-check mr-1"></i>Duyệt nhanh
+                            </button>
                             
                             <button type="button" class="btn btn-danger btn-sm" 
                                     onclick="showRejectModal({{ $service->id }})">
@@ -381,7 +378,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form method="POST" action="" id="rejectForm">
+            <form id="rejectForm">
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
@@ -395,7 +392,7 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         <i class="fas fa-times mr-1"></i>Hủy
                     </button>
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn btn-danger" id="rejectSubmitBtn">
                         <i class="fas fa-times mr-1"></i>Từ chối
                     </button>
                 </div>
@@ -438,15 +435,188 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // AJAX approve service functionality
+    const approveBtn = document.getElementById('approveServiceBtn');
+    if (approveBtn) {
+        approveBtn.addEventListener('click', function() {
+            if (confirm('Bạn có chắc chắn muốn duyệt dịch vụ này?')) {
+                const serviceId = this.getAttribute('data-service-id');
+                approveService(serviceId, this);
+            }
+        });
+    }
+
+    function approveService(serviceId, button) {
+        // Show loading state
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Đang xử lý...';
+        button.disabled = true;
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch(`/services/${serviceId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the approval status display
+                updateApprovalStatusDisplay(data.service);
+                
+                // Show success message
+                showNotification('success', data.message);
+                
+                // Hide the approve button
+                button.style.display = 'none';
+            } else {
+                showNotification('error', data.message);
+                // Restore button
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Có lỗi xảy ra khi duyệt dịch vụ');
+            // Restore button
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        });
+    }
+
+    function updateApprovalStatusDisplay(serviceData) {
+        // Find the approval status cell in the basic information table
+        const tableRows = document.querySelectorAll('.table-borderless tr');
+        let approvalStatusCell = null;
+        
+        for (let row of tableRows) {
+            const firstCell = row.querySelector('td:first-child');
+            if (firstCell && firstCell.textContent.includes('Trạng thái duyệt:')) {
+                approvalStatusCell = row.querySelector('td:last-child');
+                break;
+            }
+        }
+        
+        if (approvalStatusCell) {
+            let statusHtml = '';
+            if (serviceData.approval_status === 'approved') {
+                statusHtml = `
+                    <span class="badge badge-success">
+                        <i class="fas fa-check"></i> ${serviceData.approval_status_display}
+                    </span>
+                    ${serviceData.approved_by ? `<br><small class="text-success">Duyệt bởi: <strong>${serviceData.approved_by}</strong></small>` : ''}
+                `;
+            } else if (serviceData.approval_status === 'rejected') {
+                statusHtml = `
+                    <span class="badge badge-danger">
+                        <i class="fas fa-times"></i> ${serviceData.approval_status_display}
+                    </span>
+                    ${serviceData.rejection_reason ? `<br><small class="text-danger">${serviceData.rejection_reason}</small>` : ''}
+                `;
+            }
+            approvalStatusCell.innerHTML = statusHtml;
+        }
+    }
+
+    function showNotification(type, message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+});
+
 function showRejectModal(serviceId) {
-    // Set form action
-    document.getElementById('rejectForm').action = '/services/' + serviceId + '/reject';
-    
     // Clear previous content
     document.getElementById('rejection_reason').value = '';
     
+    // Handle form submission
+    $('#rejectForm').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        rejectService(serviceId);
+    });
+    
     // Show modal
     $('#rejectModal').modal('show');
+}
+
+function rejectService(serviceId) {
+    const form = document.getElementById('rejectForm');
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('rejectSubmitBtn');
+    
+    // Show loading state
+    const originalContent = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Đang xử lý...';
+    submitBtn.disabled = true;
+
+    fetch(`/services/${serviceId}/reject`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': formData.get('_token'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the approval status display
+            updateApprovalStatusDisplay(data.service);
+            
+            // Show success message
+            showNotification('success', data.message);
+            
+            // Close modal
+            $('#rejectModal').modal('hide');
+            
+            // Hide the reject button
+            const rejectBtn = document.querySelector(`button[onclick="showRejectModal(${serviceId})"]`);
+            if (rejectBtn) {
+                rejectBtn.style.display = 'none';
+            }
+        } else {
+            showNotification('error', data.message);
+            // Restore button
+            submitBtn.innerHTML = originalContent;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Có lỗi xảy ra khi từ chối dịch vụ');
+        // Restore button
+        submitBtn.innerHTML = originalContent;
+        submitBtn.disabled = false;
+    });
 }
 </script>
 @endpush

@@ -51,6 +51,7 @@ class Service extends Model
         'backlink' => 'Backlink',
         'textlink' => 'Textlink',
         'guest_post' => 'Guest Post',
+        'content' => 'Content',
     ];
 
     /**

@@ -21,7 +21,7 @@
                     Thêm Website
                 </a>
                 @endif
-                
+
                 @if(auth()->user()->role && in_array(auth()->user()->role->name, ['admin', 'it']))
                 <a href="{{ route('websites.cloudflare-sync') }}" class="btn btn-info">
                     <i class="fab fa-cloudflare me-2"></i>
@@ -40,7 +40,7 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label for="search" class="form-label">Tìm kiếm</label>
-                    <input type="text" class="form-control" id="search" name="search" 
+                    <input type="text" class="form-control" id="search" name="search"
                            value="{{ request('search') }}" placeholder="Tên website hoặc seoer...">
                 </div>
                 <div class="col-md-3">
@@ -129,12 +129,12 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="badge {{ $website->getCategoryBadgeClass() }}">
+                                <span class="badge {{ $website->getCategoryBadgeClass() }}" style="color: #000;">
                                     {{ $website->getCategoryDisplayName() }}
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ $website->getStatusBadgeClass() }}">
+                                <span class="badge {{ $website->getStatusBadgeClass() }}" style="color: #000;">
                                     {{ $website->getStatusDisplayName() }}
                                 </span>
                             </td>
@@ -187,7 +187,7 @@
                     </tbody>
                 </table>
             </div>
-            
+
             <!-- Pagination -->
             <div class="d-flex justify-content-center mt-4">
                 {{ $websites->withQueryString()->links() }}
@@ -226,14 +226,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function check301StatusForWebsite(websiteId) {
     const statusDiv = document.querySelector(`.redirect-status-${websiteId}`);
-    
+
     if (!statusDiv) {
         console.error(`Status div not found for website ${websiteId}`);
         return;
     }
-    
+
     console.log(`Checking 301 status for website ${websiteId}`);
-    
+
     fetch(`/websites/${websiteId}/301-status`, {
             method: 'GET',
             headers: {
@@ -253,7 +253,7 @@ function check301StatusForWebsite(websiteId) {
         })
         .then(data => {
             console.log(`301 status data for website ${websiteId}:`, data);
-            
+
             // Check if response has error (like unauthenticated)
             if (data.message === 'Unauthenticated.') {
                 statusDiv.innerHTML = `
@@ -264,7 +264,7 @@ function check301StatusForWebsite(websiteId) {
                 `;
                 return;
             }
-            
+
             if (data.has_redirect) {
                 const redirectUrl = data.redirect_to || 'N/A';
                 const displayUrl = redirectUrl.length > 30 ? redirectUrl.substring(0, 30) + '...' : redirectUrl;
@@ -282,7 +282,7 @@ function check301StatusForWebsite(websiteId) {
                     </span>
                 `;
             }
-            
+
             if (data.error) {
                 statusDiv.innerHTML = `
                     <span class="badge bg-danger" title="${data.error}">

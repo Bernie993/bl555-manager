@@ -22,7 +22,7 @@ class CloudflareService
     }
 
     /**
-     * Get zone ID by domain name
+     * Get zone ID by domain name (only active zones)
      */
     public function getZoneId(string $domain): ?string
     {
@@ -32,16 +32,20 @@ class CloudflareService
                 'Content-Type' => 'application/json',
             ])->get($this->baseUrl . '/zones', [
                 'name' => $this->extractDomain($domain),
+                'status' => 'active'  // Only get active zones, not movie or other statuses
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 if (isset($data['result'][0]['id'])) {
-                    return $data['result'][0]['id'];
+                    $zoneId = $data['result'][0]['id'];
+                    $zoneStatus = $data['result'][0]['status'] ?? 'unknown';
+                    Log::info("Found active zone ID: {$zoneId} for domain: {$domain} with status: {$zoneStatus}");
+                    return $zoneId;
                 }
             }
 
-            Log::warning('Cloudflare API: Could not get zone ID for domain: ' . $domain);
+            Log::warning('Cloudflare API: Could not get active zone ID for domain: ' . $domain);
             return null;
         } catch (\Exception $e) {
             Log::error('Cloudflare API Error: ' . $e->getMessage());
@@ -50,7 +54,48 @@ class CloudflareService
     }
 
     /**
-     * Check if domain has 301 redirect rules
+     * Get all zones for a domain and prioritize active ones
+     */
+    public function getZonesForDomain(string $domain): array
+    {
+        try {
+            $cleanDomain = $this->extractDomain($domain);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiToken,
+                'Content-Type' => 'application/json',
+            ])->get($this->baseUrl . '/zones', [
+                'name' => $cleanDomain,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $zones = $data['result'] ?? [];
+                
+                // Sort zones: active first, then others
+                usort($zones, function($a, $b) {
+                    if ($a['status'] === 'active' && $b['status'] !== 'active') return -1;
+                    if ($a['status'] !== 'active' && $b['status'] === 'active') return 1;
+                    return 0;
+                });
+                
+                Log::info("Found " . count($zones) . " zones for domain: {$cleanDomain}");
+                foreach ($zones as $zone) {
+                    Log::info("Zone ID: {$zone['id']}, Status: {$zone['status']}");
+                }
+                
+                return $zones;
+            }
+
+            Log::warning('Cloudflare API: Could not get zones for domain: ' . $domain);
+            return [];
+        } catch (\Exception $e) {
+            Log::error('Cloudflare API Error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Check if domain has 301 redirect rules (prioritize active zones)
      */
     public function check301Redirect(string $domain): array
     {
@@ -58,9 +103,10 @@ class CloudflareService
             $cleanDomain = $this->extractDomain($domain);
             Log::info("Checking 301 redirect for domain: {$cleanDomain}");
             
-            $zoneId = $this->getZoneId($cleanDomain);
-            if (!$zoneId) {
-                Log::warning("Zone not found for domain: {$cleanDomain}");
+            // Get all zones for this domain, sorted by status (active first)
+            $zones = $this->getZonesForDomain($cleanDomain);
+            if (empty($zones)) {
+                Log::warning("No zones found for domain: {$cleanDomain}");
                 return [
                     'has_redirect' => false,
                     'redirect_to' => null,
@@ -69,8 +115,54 @@ class CloudflareService
                 ];
             }
 
-            Log::info("Found zone ID: {$zoneId} for domain: {$cleanDomain}");
-            
+            // Try each zone starting with active ones
+            foreach ($zones as $zone) {
+                $zoneId = $zone['id'];
+                $zoneStatus = $zone['status'];
+                Log::info("Checking zone ID: {$zoneId} with status: {$zoneStatus}");
+                
+                $result = $this->check301RedirectForZone($zoneId, $cleanDomain);
+                if ($result['has_redirect']) {
+                    Log::info("Found 301 redirect in zone {$zoneId} (status: {$zoneStatus})");
+                    return array_merge($result, [
+                        'zone_id' => $zoneId,
+                        'zone_status' => $zoneStatus
+                    ]);
+                }
+            }
+
+            // No redirect found in any zone
+            Log::info("No 301 redirect found in any zone for domain: {$cleanDomain}");
+            return [
+                'has_redirect' => false,
+                'redirect_to' => null,
+                'error' => null,
+                'zone_id' => $zones[0]['id'] ?? null,
+                'zone_status' => $zones[0]['status'] ?? null,
+                'debug' => [
+                    'domain' => $cleanDomain,
+                    'checked_zones' => count($zones),
+                    'zone_statuses' => array_column($zones, 'status')
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Cloudflare 301 Check Error for domain ' . $domain . ': ' . $e->getMessage());
+            return [
+                'has_redirect' => false,
+                'redirect_to' => null,
+                'error' => 'Lỗi kết nối Cloudflare API: ' . $e->getMessage(),
+                'zone_id' => null
+            ];
+        }
+    }
+
+    /**
+     * Check 301 redirect for a specific zone
+     */
+    private function check301RedirectForZone(string $zoneId, string $cleanDomain): array
+    {
+        try {
             $redirectTo = null;
             $hasRedirect = false;
 
@@ -158,13 +250,12 @@ class CloudflareService
                 }
             }
 
-            Log::info("Final result for {$cleanDomain}: has_redirect={$hasRedirect}, redirect_to={$redirectTo}");
+            Log::info("Zone {$zoneId} result for {$cleanDomain}: has_redirect={$hasRedirect}, redirect_to={$redirectTo}");
 
             return [
                 'has_redirect' => $hasRedirect,
                 'redirect_to' => $redirectTo,
                 'error' => null,
-                'zone_id' => $zoneId,
                 'debug' => [
                     'domain' => $cleanDomain,
                     'zone_id' => $zoneId,
@@ -175,31 +266,36 @@ class CloudflareService
             ];
 
         } catch (\Exception $e) {
-            Log::error('Cloudflare 301 Check Error for domain ' . $domain . ': ' . $e->getMessage());
+            Log::error('Cloudflare 301 Check Error for zone ' . $zoneId . ': ' . $e->getMessage());
             return [
                 'has_redirect' => false,
                 'redirect_to' => null,
-                'error' => 'Lỗi kết nối Cloudflare API: ' . $e->getMessage(),
-                'zone_id' => null
+                'error' => 'Lỗi kết nối Cloudflare API: ' . $e->getMessage()
             ];
         }
     }
 
     /**
-     * Create or update 301 redirect rule
+     * Create or update 301 redirect rule (prioritize active zones)
      */
     public function create301Redirect(string $domain, string $redirectTo): array
     {
         try {
             $cleanDomain = $this->extractDomain($domain);
-            $zoneId = $this->getZoneId($cleanDomain);
             
-            if (!$zoneId) {
+            // Get all zones for this domain, sorted by status (active first)
+            $zones = $this->getZonesForDomain($cleanDomain);
+            if (empty($zones)) {
                 return [
                     'success' => false,
                     'error' => 'Không tìm thấy zone cho domain này'
                 ];
             }
+
+            // Use the first zone (which should be active if available)
+            $zoneId = $zones[0]['id'];
+            $zoneStatus = $zones[0]['status'];
+            Log::info("Using zone ID: {$zoneId} with status: {$zoneStatus} for creating 301 redirect");
 
             Log::info("Creating/updating 301 redirect for {$cleanDomain} to {$redirectTo}");
 

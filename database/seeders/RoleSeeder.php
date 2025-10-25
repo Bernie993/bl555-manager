@@ -52,8 +52,9 @@ class RoleSeeder extends Seeder
         $adminRole->permissions()->attach($allPermissions);
         $itRole->permissions()->attach($allPermissions);
 
-        // Seoer only has read permissions for budgets, services (approved only), and can create service proposals
+        // Seoer only has read permissions for budgets, services (approved only), websites (read only), and can create service proposals
         $seoerPermissions = Permission::whereIn('name', [
+            'websites.read',
             'budgets.read',
             'services.read',
             'service_proposals.read',

@@ -66,6 +66,83 @@
     transform: translateY(-2px);
     transition: all 0.2s ease-in-out;
 }
+
+/* Clickable card styles */
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.clickable-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.3) !important;
+}
+
+.clickable-card:active {
+    transform: translateY(-2px);
+}
+
+.clickable-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.clickable-card:hover::before {
+    left: 100%;
+}
+
+/* Modal styles */
+.modal-detail .modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 1rem 3rem rgba(0,0,0,0.175);
+}
+
+.modal-detail .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    border: none;
+}
+
+.modal-detail .modal-body {
+    padding: 2rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.detail-value {
+    color: #6c757d;
+    text-align: right;
+}
+
+.detail-value.badge {
+    text-align: center;
+    min-width: 80px;
+}
 </style>
 @endsection
 
@@ -316,78 +393,86 @@
     <div class="row">
         <!-- Tổng Website -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary stat-card h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Số dịch vụ đã đăng
+            <a href="{{ route('services.index') }}" class="text-decoration-none">
+                <div class="card border-left-primary stat-card h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Số dịch vụ đã đăng
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $partnerStats['total_services'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $partnerStats['total_services'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Website hoạt động -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success stat-card h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Số đề xuất
+            <a href="{{ route('service-proposals.index') }}" class="text-decoration-none">
+                <div class="card border-left-success stat-card h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Số đề xuất
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $partnerStats['total_proposals'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $partnerStats['total_proposals'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Tổng Ngân sách -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info stat-card h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Tổng tiền đã rút
+            <a href="{{ route('withdrawals.index') }}" class="text-decoration-none">
+                <div class="card border-left-info stat-card h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Tổng tiền đã rút
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($partnerStats['total_withdrawn'] ?? 0) }} VNĐ</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($partnerStats['total_withdrawn'] ?? 0) }} VNĐ</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Người dùng -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning stat-card h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Tổng tiền chưa rút
+            <a href="{{ route('withdrawals.index') }}" class="text-decoration-none">
+                <div class="card border-left-warning stat-card h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Tổng tiền chưa rút
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($partnerStats['total_pending'] ?? 0) }} VNĐ</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($partnerStats['total_pending'] ?? 0) }} VNĐ</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -503,78 +588,86 @@
     <div class="row">
         <!-- Tổng Website -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Tổng Website
+            <a href="{{ route('websites.index') }}" class="text-decoration-none">
+                <div class="card border-left-primary stat-card shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Tổng Website
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_websites'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_websites'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-globe fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-globe fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Website hoạt động -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Website hoạt động
+            <a href="{{ route('websites.index') }}" class="text-decoration-none">
+                <div class="card border-left-success stat-card shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Website hoạt động
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active_websites'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['active_websites'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Tổng Ngân sách -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Tổng Ngân sách
+            <a href="{{ route('budgets.index') }}" class="text-decoration-none">
+                <div class="card border-left-info stat-card shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Tổng Ngân sách
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_budgets'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_budgets'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-wallet fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Người dùng -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Người dùng
+            <a href="{{ route('users.index') }}" class="text-decoration-none">
+                <div class="card border-left-warning stat-card shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Người dùng
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_users'] ?? 0 }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total_users'] ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -605,7 +698,7 @@
                                 @foreach($recentWebsites as $website)
                                 <tr>
                                     <td>
-                                        <strong>{{ $website->domain }}</strong>
+                                        <strong>{{ $website->name }}</strong>
                                         @if($website->cloudflare_zone_id)
                                             <span class="badge bg-info ms-2">CF</span>
                                         @endif

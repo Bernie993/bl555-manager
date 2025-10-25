@@ -58,12 +58,12 @@
 
                         <div class="row">
                             <!-- Website -->
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="website-field" style="display: {{ $service->type === 'textlink' ? 'block' : 'none' }};">
                                 <div class="form-group">
                                     <label for="website" class="required">Website:</label>
                                     <input type="url" name="website" id="website" 
                                            class="form-control @error('website') is-invalid @enderror" 
-                                           value="{{ old('website', $service->website) }}" required
+                                           value="{{ old('website', $service->website) }}"
                                            placeholder="https://example.com">
                                     @error('website')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -296,4 +296,31 @@
     color: red;
 }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.getElementById('type');
+    const websiteField = document.getElementById('website-field');
+    const websiteInput = document.getElementById('website');
+    
+    function toggleWebsiteField() {
+        if (typeSelect.value === 'textlink') {
+            websiteField.style.display = 'block';
+            websiteInput.required = true;
+        } else {
+            websiteField.style.display = 'none';
+            websiteInput.required = false;
+            websiteInput.value = ''; // Clear value when hidden
+        }
+    }
+    
+    // Initial check for old values
+    toggleWebsiteField();
+    
+    // Listen for changes
+    typeSelect.addEventListener('change', toggleWebsiteField);
+});
+</script>
 @endpush

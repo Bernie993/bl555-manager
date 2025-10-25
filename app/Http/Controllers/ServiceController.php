@@ -169,7 +169,7 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => ['required', Rule::in(array_keys(Service::TYPES))],
-            'website' => 'required|url|max:255',
+            'website' => 'nullable|url|max:255',
             'dr' => 'nullable|integer|min:0|max:100',
             'da' => 'nullable|integer|min:0|max:100',
             'pa' => 'nullable|integer|min:0|max:100',
@@ -185,6 +185,11 @@ class ServiceController extends Controller
             'traffic' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
+
+        // Custom validation: website is required only for textlink type
+        if ($validated['type'] === 'textlink' && empty($validated['website'])) {
+            return back()->withErrors(['website' => 'Trường Website là bắt buộc cho loại dịch vụ Textlink.'])->withInput();
+        }
 
         // Process keywords
         if ($validated['keywords']) {
@@ -243,7 +248,7 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => ['required', Rule::in(array_keys(Service::TYPES))],
-            'website' => 'required|url|max:255',
+            'website' => 'nullable|url|max:255',
             'dr' => 'nullable|integer|min:0|max:100',
             'da' => 'nullable|integer|min:0|max:100',
             'pa' => 'nullable|integer|min:0|max:100',
@@ -259,6 +264,11 @@ class ServiceController extends Controller
             'traffic' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
+
+        // Custom validation: website is required only for textlink type
+        if ($validated['type'] === 'textlink' && empty($validated['website'])) {
+            return back()->withErrors(['website' => 'Trường Website là bắt buộc cho loại dịch vụ Textlink.'])->withInput();
+        }
 
         // Process keywords
         if ($validated['keywords']) {
@@ -387,6 +397,12 @@ class ServiceController extends Controller
         $user = Auth::user();
         
         if (!$service->canBeApprovedBy($user)) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền duyệt dịch vụ này.'
+                ], 403);
+            }
             abort(403, 'Bạn không có quyền duyệt dịch vụ này.');
         }
 
@@ -400,6 +416,23 @@ class ServiceController extends Controller
         // Send notification
         $this->notificationService->sendServiceNotification('approved', $service, $user);
 
+        // Reload the service to get updated data
+        $service->refresh();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Dịch vụ đã được duyệt thành công.',
+                'service' => [
+                    'id' => $service->id,
+                    'approval_status' => $service->approval_status,
+                    'approval_status_display' => $service->getApprovalStatusDisplayName(),
+                    'approved_by' => $service->approvedBy ? $service->approvedBy->name : null,
+                    'approved_at' => $service->approved_at ? $service->approved_at->format('d/m/Y H:i') : null,
+                ]
+            ]);
+        }
+
         return redirect()->route('services.index')
             ->with('success', 'Dịch vụ đã được duyệt thành công.');
     }
@@ -412,6 +445,12 @@ class ServiceController extends Controller
         $user = Auth::user();
         
         if (!$service->canBeApprovedBy($user)) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền từ chối dịch vụ này.'
+                ], 403);
+            }
             abort(403, 'Bạn không có quyền từ chối dịch vụ này.');
         }
 
@@ -428,6 +467,24 @@ class ServiceController extends Controller
 
         // Send notification
         $this->notificationService->sendServiceNotification('rejected', $service, $user);
+
+        // Reload the service to get updated data
+        $service->refresh();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Dịch vụ đã được từ chối.',
+                'service' => [
+                    'id' => $service->id,
+                    'approval_status' => $service->approval_status,
+                    'approval_status_display' => $service->getApprovalStatusDisplayName(),
+                    'approved_by' => $service->approvedBy ? $service->approvedBy->name : null,
+                    'approved_at' => $service->approved_at ? $service->approved_at->format('d/m/Y H:i') : null,
+                    'rejection_reason' => $service->rejection_reason,
+                ]
+            ]);
+        }
 
         return redirect()->route('services.index')
             ->with('success', 'Dịch vụ đã được từ chối.');

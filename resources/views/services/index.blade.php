@@ -257,7 +257,7 @@
                             </thead>
                             <tbody>
                                 @forelse($services as $service)
-                                    <tr>
+                                    <tr data-service-id="{{ $service->id }}">
                                         @if(auth()->user()->role && auth()->user()->role->name === 'seoer')
                                             <td>
                                                 @if($service->is_active)
@@ -401,14 +401,10 @@
                                                 @endif
 
                                                 @if($service->canBeApprovedBy(auth()->user()))
-                                                    <form method="POST" action="{{ route('services.approve', $service) }}" 
-                                                          style="display: inline;" 
-                                                          onsubmit="return confirm('Bạn có chắc chắn muốn duyệt dịch vụ này?')">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-success" title="Duyệt">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-success approve-service-btn" 
+                                                            title="Duyệt" data-service-id="{{ $service->id }}">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
                                                     
                                                     <button type="button" class="btn btn-sm btn-danger" title="Từ chối"
                                                             onclick="showRejectModal({{ $service->id }})">
@@ -800,6 +796,127 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial update
     updateBulkActions();
     @endif
+
+    // AJAX approve service functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.approve-service-btn')) {
+            e.preventDefault();
+            const button = e.target.closest('.approve-service-btn');
+            const serviceId = button.getAttribute('data-service-id');
+            
+            if (confirm('Bạn có chắc chắn muốn duyệt dịch vụ này?')) {
+                approveService(serviceId, button);
+            }
+        }
+    });
+
+    function approveService(serviceId, button) {
+        // Show loading state
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch(`/services/${serviceId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the approval status in the table
+                updateApprovalStatus(serviceId, data.service);
+                
+                // Show success message
+                showNotification('success', data.message);
+                
+                // Hide the approve button and show approved status
+                button.style.display = 'none';
+            } else {
+                showNotification('error', data.message);
+                // Restore button
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Có lỗi xảy ra khi duyệt dịch vụ');
+            // Restore button
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        });
+    }
+
+    function updateApprovalStatus(serviceId, serviceData) {
+        // Find the row containing this service
+        const serviceRow = document.querySelector(`tr[data-service-id="${serviceId}"]`);
+        if (!serviceRow) {
+            // If not found by data attribute, find by looking for the approve button
+            const approveBtn = document.querySelector(`.approve-service-btn[data-service-id="${serviceId}"]`);
+            if (approveBtn) {
+                serviceRow = approveBtn.closest('tr');
+            }
+        }
+
+        if (serviceRow) {
+            // Update the approval status cell
+            const approvalCell = serviceRow.querySelector('.approval-status-cell');
+            if (approvalCell) {
+                let statusHtml = '';
+                if (serviceData.approval_status === 'approved') {
+                    statusHtml = `
+                        <span class="badge badge-success text-white">
+                            <i class="fas fa-check"></i> ${serviceData.approval_status_display}
+                        </span>
+                        ${serviceData.approved_by ? `<br><small class="text-success"><strong>${serviceData.approved_by}</strong></small>` : ''}
+                    `;
+                } else if (serviceData.approval_status === 'rejected') {
+                    statusHtml = `
+                        <span class="badge badge-danger text-white">
+                            <i class="fas fa-times"></i> ${serviceData.approval_status_display}
+                        </span>
+                        ${serviceData.rejection_reason ? `<br><small class="text-danger" title="${serviceData.rejection_reason}">${serviceData.rejection_reason.substring(0, 30)}${serviceData.rejection_reason.length > 30 ? '...' : ''}</small>` : ''}
+                    `;
+                }
+                approvalCell.innerHTML = statusHtml;
+            }
+        }
+    }
+
+    function showNotification(type, message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
 });
 
 // Reject service modal
@@ -814,7 +931,7 @@ function showRejectModal(serviceId) {
                             <span>&times;</span>
                         </button>
                     </div>
-                    <form method="POST" action="/services/${serviceId}/reject">
+                    <form id="rejectForm">
                         <div class="modal-body">
                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
                             <div class="form-group">
@@ -826,7 +943,7 @@ function showRejectModal(serviceId) {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                            <button type="submit" class="btn btn-danger">Từ chối</button>
+                            <button type="submit" class="btn btn-danger" id="rejectSubmitBtn">Từ chối</button>
                         </div>
                     </form>
                 </div>
@@ -840,8 +957,65 @@ function showRejectModal(serviceId) {
     // Add modal to body
     $('body').append(modal);
     
+    // Handle form submission
+    $('#rejectForm').on('submit', function(e) {
+        e.preventDefault();
+        rejectService(serviceId);
+    });
+    
     // Show modal
     $('#rejectModal').modal('show');
+}
+
+function rejectService(serviceId) {
+    const form = document.getElementById('rejectForm');
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('rejectSubmitBtn');
+    
+    // Show loading state
+    const originalContent = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+    submitBtn.disabled = true;
+
+    fetch(`/services/${serviceId}/reject`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': formData.get('_token'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the approval status in the table
+            updateApprovalStatus(serviceId, data.service);
+            
+            // Show success message
+            showNotification('success', data.message);
+            
+            // Close modal
+            $('#rejectModal').modal('hide');
+            
+            // Hide the reject button
+            const rejectBtn = document.querySelector(`button[onclick="showRejectModal(${serviceId})"]`);
+            if (rejectBtn) {
+                rejectBtn.style.display = 'none';
+            }
+        } else {
+            showNotification('error', data.message);
+            // Restore button
+            submitBtn.innerHTML = originalContent;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Có lỗi xảy ra khi từ chối dịch vụ');
+        // Restore button
+        submitBtn.innerHTML = originalContent;
+        submitBtn.disabled = false;
+    });
 }
 </script>
 @endpush
